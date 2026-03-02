@@ -15,20 +15,8 @@ dotenv.config();
 // Initialize Gemini AI
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-// List available models on startup
-(async () => {
-  try {
-    console.log('[GEMINI] Fetching available models...');
-    const models = await genAI.listModels();
-    console.log('[GEMINI] Available models:');
-    models.forEach(model => {
-      console.log(`  - ${model.name} (${model.displayName})`);
-      console.log(`    Supported methods: ${model.supportedGenerationMethods?.join(', ')}`);
-    });
-  } catch (error) {
-    console.error('[GEMINI] Error listing models:', error.message);
-  }
-})();
+// Initialize on startup
+console.log('[GEMINI] Gemini AI initialized successfully');
 
 
 async function generateWithRetry(model, prompt, maxRetries = 3) {
