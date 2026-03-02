@@ -3,11 +3,11 @@
    Clean Architecture for TTS API Proxy
    ============================================ */
 
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import fetch from 'node-fetch';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import fetch from "node-fetch";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // Load environment variables
 dotenv.config();
@@ -16,8 +16,7 @@ dotenv.config();
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // Initialize on startup
-console.log('[GEMINI] Gemini AI initialized successfully');
-
+console.log("[GEMINI] Gemini AI initialized successfully");
 
 async function generateWithRetry(model, prompt, maxRetries = 3) {
   let retries = 0;
@@ -29,19 +28,26 @@ async function generateWithRetry(model, prompt, maxRetries = 3) {
       return await model.generateContent(prompt);
     } catch (error) {
       // Check if it's a 429 error
-      if (error.status === 429 || (error.message && error.message.includes('429'))) {
+      if (
+        error.status === 429 ||
+        (error.message && error.message.includes("429"))
+      ) {
         retries++;
         if (retries >= maxRetries) {
-          console.error(`[GEMINI] Max retries (${maxRetries}) reached. Failing.`);
+          console.error(
+            `[GEMINI] Max retries (${maxRetries}) reached. Failing.`,
+          );
           throw error; // Give up after max retries
         }
 
         // Calculate the delay: 1s, then 2s, then 4s...
         const delay = baseDelay * Math.pow(2, retries - 1);
-        console.warn(`[GEMINI] Rate limited (429). Retrying in ${delay}ms... (Attempt ${retries} of ${maxRetries})`);
-        
+        console.warn(
+          `[GEMINI] Rate limited (429). Retrying in ${delay}ms... (Attempt ${retries} of ${maxRetries})`,
+        );
+
         // Pause execution for the calculated delay
-        await new Promise(resolve => setTimeout(resolve, delay));
+        await new Promise((resolve) => setTimeout(resolve, delay));
       } else {
         // If it's not a 429, throw the error immediately (e.g., a 400 Bad Request)
         throw error;
@@ -58,11 +64,11 @@ const CONFIG = {
   voiceRssApiKey: process.env.VOICERSS_API_KEY,
   geminiApiKey: process.env.GEMINI_API_KEY,
   allowedOrigins: [
-    'http://localhost:5500',
-    'http://127.0.0.1:5500',
-    'http://localhost:3000',
+    "http://localhost:5500",
+    "http://127.0.0.1:5500",
+    "http://localhost:3000",
     // Add your production domain here
-  ]
+  ],
 };
 
 // ============================================
@@ -72,18 +78,20 @@ const app = express();
 
 // Middleware
 app.use(express.json());
-app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, Postman, etc.)
-    if (!origin) return callback(null, true);
-    
-    if (CONFIG.allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  }
-}));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (mobile apps, Postman, etc.)
+      if (!origin) return callback(null, true);
+
+      if (CONFIG.allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+  }),
+);
 
 // Request logging middleware
 app.use((req, res, next) => {
@@ -98,11 +106,11 @@ app.use((req, res, next) => {
 /**
  * Health check endpoint
  */
-app.get('/api/health', (req, res) => {
+app.get("/api/health", (req, res) => {
   res.json({
-    status: 'ok',
+    status: "ok",
     timestamp: new Date().toISOString(),
-    service: 'Geo-Scan TTS Backend'
+    service: "Geo-Scan TTS Backend",
   });
 });
 
@@ -111,22 +119,22 @@ app.get('/api/health', (req, res) => {
  * POST /api/tts
  * Body: { text: string, language: "id" | "en" }
  */
-app.post('/api/tts', async (req, res) => {
+app.post("/api/tts", async (req, res) => {
   try {
     const { text, language } = req.body;
 
     // Validation
-    if (!text || typeof text !== 'string') {
+    if (!text || typeof text !== "string") {
       return res.status(400).json({
-        error: 'Invalid request',
-        message: 'Text is required and must be a string'
+        error: "Invalid request",
+        message: "Text is required and must be a string",
       });
     }
 
-    if (!language || !['id', 'en'].includes(language)) {
+    if (!language || !["id", "en"].includes(language)) {
       return res.status(400).json({
-        error: 'Invalid request',
-        message: 'Language must be "id" or "en"'
+        error: "Invalid request",
+        message: 'Language must be "id" or "en"',
       });
     }
 
@@ -134,17 +142,19 @@ app.post('/api/tts', async (req, res) => {
     const maxLength = 1000;
     const sanitizedText = text.substring(0, maxLength);
 
-    console.log(`[TTS] Generating audio for language: ${language}, text length: ${sanitizedText.length}`);
+    console.log(
+      `[TTS] Generating audio for language: ${language}, text length: ${sanitizedText.length}`,
+    );
 
     // Build VoiceRSS request
     const params = new URLSearchParams({
       key: CONFIG.voiceRssApiKey,
       src: sanitizedText,
-      hl: language === 'id' ? 'id-id' : 'en-us',
-      v: language === 'id' ? 'Rizki' : 'Linda',
-      r: '0', // Normal speed
-      c: 'MP3',
-      f: '44khz_16bit_stereo'
+      hl: language === "id" ? "id-id" : "en-us",
+      v: language === "id" ? "Rizki" : "Linda",
+      r: "0", // Normal speed
+      c: "MP3",
+      f: "44khz_16bit_stereo",
     });
 
     const voiceRssUrl = `https://api.voicerss.org/?${params.toString()}`;
@@ -154,42 +164,44 @@ app.post('/api/tts', async (req, res) => {
 
     // Get response as buffer first
     const audioBuffer = await response.buffer();
-    const responseText = audioBuffer.toString('utf-8');
-    
+    const responseText = audioBuffer.toString("utf-8");
+
     console.log(`[TTS] VoiceRSS response size: ${audioBuffer.length} bytes`);
-    
+
     // Check if response is error message (VoiceRSS returns errors as plain text)
     // Valid MP3 files start with ID3 or 0xFF 0xFB (MP3 frame sync)
-    const isError = audioBuffer.length < 1000 || 
-                    responseText.toLowerCase().includes('error') ||
-                    (!audioBuffer[0] === 0xFF && !responseText.startsWith('ID3'));
-    
+    const isError =
+      audioBuffer.length < 1000 ||
+      responseText.toLowerCase().includes("error") ||
+      (!audioBuffer[0] === 0xff && !responseText.startsWith("ID3"));
+
     if (!response.ok || isError) {
-      console.error('[TTS] VoiceRSS error:', responseText);
-      
+      console.error("[TTS] VoiceRSS error:", responseText);
+
       return res.status(400).json({
-        error: 'TTS service error',
-        message: responseText || 'Invalid audio response from VoiceRSS'
+        error: "TTS service error",
+        message: responseText || "Invalid audio response from VoiceRSS",
       });
     }
-    
-    console.log(`[TTS] Audio generated successfully, size: ${audioBuffer.length} bytes`);
+
+    console.log(
+      `[TTS] Audio generated successfully, size: ${audioBuffer.length} bytes`,
+    );
 
     // Send audio as response
     res.set({
-      'Content-Type': 'audio/mpeg',
-      'Content-Length': audioBuffer.length,
-      'Cache-Control': 'public, max-age=86400' // Cache for 1 day
+      "Content-Type": "audio/mpeg",
+      "Content-Length": audioBuffer.length,
+      "Cache-Control": "public, max-age=86400", // Cache for 1 day
     });
 
     res.send(audioBuffer);
-
   } catch (error) {
-    console.error('[TTS] Error:', error);
-    
+    console.error("[TTS] Error:", error);
+
     res.status(500).json({
-      error: 'Internal server error',
-      message: error.message
+      error: "Internal server error",
+      message: error.message,
     });
   }
 });
@@ -199,69 +211,79 @@ app.post('/api/tts', async (req, res) => {
  * POST /api/chat
  * Body: { text: string, context: string, language: "id" | "en" }
  */
-app.post('/api/chat', async (req, res) => {
+app.post("/api/chat", async (req, res) => {
   try {
     const { text, context, language } = req.body;
 
     // Validation
-    if (!text || typeof text !== 'string') {
+    if (!text || typeof text !== "string") {
       return res.status(400).json({
-        error: 'Invalid request',
-        message: 'Text is required and must be a string'
+        error: "Invalid request",
+        message: "Text is required and must be a string",
       });
     }
 
-    if (!context || typeof context !== 'string') {
+    if (!context || typeof context !== "string") {
       return res.status(400).json({
-        error: 'Invalid request',
-        message: 'Context is required (e.g., "watu-kelir", "goa-barat", "menganti")'
+        error: "Invalid request",
+        message:
+          'Context is required (e.g., "watu-kelir", "goa-barat", "menganti")',
       });
     }
 
-    const validLanguages = ['id', 'en', 'Indonesia', 'English'];
-    const lang = language || 'id';
+    const validLanguages = ["id", "en", "Indonesia", "English"];
+    const lang = language || "id";
 
-    console.log(`[CHAT] Processing request - Context: ${context}, Language: ${lang}`);
+    console.log(
+      `[CHAT] Processing request - Context: ${context}, Language: ${lang}`,
+    );
 
     // Build system instruction based on context
     const contextInstructions = {
-      'watu-kelir': 'Geo, Ahli Geologi Kebumen spesialis Watu Kelir. Fokus pada formasi chert dan lava bantal. Singkat (3-4 kalimat).',
-      'goa-barat': 'Geo, Ahli Geologi Kebumen spesialis Goa Barat (Wind Cave). Fokus pada sistem karst dan sungai bawah tanah. Singkat (3-4 kalimat).',
-      'menganti': 'Geo, Ahli Geologi Kebumen spesialis Pantai Menganti. Fokus pada vulkanisme purba dan formasi batuan. Singkat (3-4 kalimat).',
-      'geopark-home': 'Geo, asisten digital ahli geologi UNESCO Global Geopark Kebumen. Informasi umum tentang geopark, geosite, dan geowisata. Ramah dan singkat (3-4 kalimat).',
-      'kaliratu': 'Geo, Ahli Ekologi/Konservasi Kebumen spesialis Biosite Penyu Kaliratu. Fokus pada konservasi penyu lekang dan ekosistem pesisir. Singkat (3-4 kalimat).'
+      "watu-kelir":
+        "Geo, Ahli Geologi Kebumen spesialis Watu Kelir. Fokus pada formasi chert dan lava bantal. Singkat (3-4 kalimat).",
+      "goa-barat":
+        "Geo, Ahli Geologi Kebumen spesialis Goa Barat (Wind Cave). Fokus pada sistem karst dan sungai bawah tanah. Singkat (3-4 kalimat).",
+      menganti:
+        "Geo, Ahli Geologi Kebumen spesialis Pantai Menganti. Fokus pada vulkanisme purba dan formasi batuan. Singkat (3-4 kalimat).",
+      "geopark-home":
+        "Geo, asisten digital ahli geologi UNESCO Global Geopark Kebumen. Informasi umum tentang geopark, geosite, dan geowisata. Ramah dan singkat (3-4 kalimat).",
+      kaliratu:
+        "Geo, Ahli Ekologi/Konservasi Kebumen spesialis Biosite Penyu Kaliratu. Fokus pada konservasi penyu lekang dan ekosistem pesisir. Singkat (3-4 kalimat).",
     };
 
-    const systemInstruction = contextInstructions[context] || contextInstructions['watu-kelir'];
+    const systemInstruction =
+      contextInstructions[context] || contextInstructions["watu-kelir"];
     const fullPrompt = `${systemInstruction} Bahasa: ${lang}.\n\nPertanyaan: ${text}`;
 
     // Call Gemini AI using official SDK
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     const result = await generateWithRetry(model, fullPrompt);
     const aiResponse = result.response.text();
 
     if (!aiResponse) {
-      console.error('[CHAT] Empty response from Gemini');
+      console.error("[CHAT] Empty response from Gemini");
       return res.status(500).json({
-        error: 'AI service error',
-        message: 'Empty response from AI service'
+        error: "AI service error",
+        message: "Empty response from AI service",
       });
     }
 
-    console.log(`[CHAT] Response generated successfully, length: ${aiResponse.length} chars`);
+    console.log(
+      `[CHAT] Response generated successfully, length: ${aiResponse.length} chars`,
+    );
 
     res.json({
       response: aiResponse,
       context: context,
-      language: lang
+      language: lang,
     });
-
   } catch (error) {
-    console.error('[CHAT] Error:', error);
-    
+    console.error("[CHAT] Error:", error);
+
     res.status(500).json({
-      error: 'Internal server error',
-      message: error.message
+      error: "Internal server error",
+      message: error.message,
     });
   }
 });
@@ -273,18 +295,18 @@ app.post('/api/chat', async (req, res) => {
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({
-    error: 'Not found',
-    message: `Route ${req.method} ${req.path} not found`
+    error: "Not found",
+    message: `Route ${req.method} ${req.path} not found`,
   });
 });
 
 // Global error handler
 app.use((err, req, res, next) => {
-  console.error('[ERROR]', err);
-  
+  console.error("[ERROR]", err);
+
   res.status(err.status || 500).json({
-    error: 'Server error',
-    message: err.message
+    error: "Server error",
+    message: err.message,
   });
 });
 
@@ -292,11 +314,11 @@ app.use((err, req, res, next) => {
 // SERVER START
 // ============================================
 app.listen(CONFIG.port, () => {
-  console.log('============================================');
-  console.log('  GEO-SCAN TTS Backend Server');
-  console.log('============================================');
+  console.log("============================================");
+  console.log("  GEO-SCAN TTS Backend Server");
+  console.log("============================================");
   console.log(`  Server running on port ${CONFIG.port}`);
   console.log(`  Health check: http://localhost:${CONFIG.port}/api/health`);
   console.log(`  TTS endpoint: http://localhost:${CONFIG.port}/api/tts`);
-  console.log('============================================');
+  console.log("============================================");
 });
