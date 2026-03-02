@@ -1,6 +1,6 @@
 const CONFIG = {
-  ttsBackendUrl: 'http://localhost:3000/api/tts',
-  chatBackendUrl: 'http://localhost:3000/api/chat',
+  ttsBackendUrl: 'https://geo-scan-backend.onrender.com/api/tts',
+  chatBackendUrl: 'https://geo-scan-backend.onrender.com/api/chat',
   geositeContext: 'kaliratu',
   carouselInterval: 5000,
   scannerFps: 10,

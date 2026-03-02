@@ -1,6 +1,6 @@
 const CONFIG = {
   weatherApiUrl: 'https://api.open-meteo.com/v1/forecast?latitude=-7.67&longitude=109.65&current_weather=true',
-  chatBackendUrl: 'http://localhost:3000/api/chat',
+  chatBackendUrl: 'https://geo-scan-backend.onrender.com/api/chat',
   geositeContext: 'geopark-home',
   carouselInterval: 5000,
   scannerFps: 10,

@@ -2,8 +2,8 @@
 
 // Configuration
 const CONFIG = {
-  ttsBackendUrl: 'http://localhost:3000/api/tts',
-  chatBackendUrl: 'http://localhost:3000/api/chat',
+  ttsBackendUrl: 'https://geo-scan-backend.onrender.com/api/tts',
+  chatBackendUrl: 'https://geo-scan-backend.onrender.com/api/chat',
   geositeContext: 'menganti',
   carouselInterval: 5000,
   qrScanConfig: {
