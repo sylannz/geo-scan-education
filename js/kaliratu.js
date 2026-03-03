@@ -182,49 +182,20 @@ async function handleAudioPlay() {
 
   const fullText = `${t.audioDesc} Mari jelajahi ${t.siteTitle}. ${t.eduDesc}. ${t.unescoTitle}: ${t.unescoDesc}. ${t.legendTitle}: ${t.legendDesc}. Terakhir, dalam ${t.geoAnalysisTitle}, kita lihat ${t.chertTitle} dan ${t.lavaTitle}.`;
 
-  try {
-    const response = await fetch(CONFIG.ttsBackendUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        text: fullText,
-        language: STATE.language,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || "TTS error");
-    }
-
-    const audioBlob = await response.blob();
-    const audioUrl = URL.createObjectURL(audioBlob);
-    STATE.audioSource = new Audio(audioUrl);
+  // Use browser native speech synthesis
+  const utterance = new SpeechSynthesisUtterance(
+    fullText.replace(t.audioDesc, ""),
+  );
+  utterance.lang = STATE.language === "id" ? "id-ID" : "en-US";
+  utterance.onstart = () => {
     STATE.audioPlaying = true;
-    STATE.audioSource.play();
     updateAudioBtn(true);
-    STATE.audioSource.onended = () => {
-      STATE.audioPlaying = false;
-      updateAudioBtn(false);
-    };
-  } catch (error) {
-    console.error("[TTS] Error:", error);
-    console.warn("AI Voice failed, switching to system voice...");
-
-    const utterance = new SpeechSynthesisUtterance(
-      fullText.replace(t.audioDesc, ""),
-    );
-    utterance.lang = STATE.language === "id" ? "id-ID" : "en-US";
-    utterance.onstart = () => {
-      STATE.audioPlaying = true;
-      updateAudioBtn(true);
-    };
-    utterance.onend = () => {
-      STATE.audioPlaying = false;
-      updateAudioBtn(false);
-    };
-    window.speechSynthesis.speak(utterance);
-  }
+  };
+  utterance.onend = () => {
+    STATE.audioPlaying = false;
+    updateAudioBtn(false);
+  };
+  window.speechSynthesis.speak(utterance);
 }
 
 function updateAudioBtn(isPlaying) {

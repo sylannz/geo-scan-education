@@ -253,38 +253,24 @@ async function handleAudioPlay() {
 
   const fullText = `${t.audioDesc} Mari jelajahi ${t.siteTitle}. ${t.eduDesc}. ${t.unescoDesc}. ${t.legendDesc}`;
 
-  try {
-    const response = await fetch(CONFIG.ttsBackendUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        text: fullText,
-        language: STATE.language,
-      }),
-    });
-
-    const contentType = response.headers.get("content-type");
-
-    if (!response.ok || contentType?.includes("application/json")) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || "TTS error");
-    }
-
-    const audioBlob = await response.blob();
-    const audioUrl = URL.createObjectURL(audioBlob);
-    STATE.audioSource = new Audio(audioUrl);
+  // Use browser native speech synthesis
+  const utterance = new SpeechSynthesisUtterance(
+    fullText.replace(t.audioDesc, ""),
+  );
+  utterance.lang = STATE.language === "id" ? "id-ID" : "en-US";
+  utterance.onstart = () => {
     STATE.audioPlaying = true;
-    STATE.audioSource.play();
     updateAudioBtn(true);
-    STATE.audioSource.onended = () => {
-      STATE.audioPlaying = false;
-      updateAudioBtn(false);
-    };
-  } catch (err) {
-    console.error("[TTS] Error:", err);
-    setText("audio-status", t.audioBtnIdle);
-    getElement("audio-progress-container").classList.add("hidden");
-  }
+  };
+  utterance.onend = () => {
+    STATE.audioPlaying = false;
+    updateAudioBtn(false);
+  };
+  utterance.onerror = () => {
+    STATE.audioPlaying = false;
+    updateAudioBtn(false);
+  };
+  window.speechSynthesis.speak(utterance);
 }
 
 function updateAudioBtn(isPlaying) {
