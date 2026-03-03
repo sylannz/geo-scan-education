@@ -103,6 +103,14 @@ app.use((req, res, next) => {
 // API ENDPOINTS
 // ============================================
 
+// Root route to make visiting base URL more friendly
+app.get("/", (req, res) => {
+  res.json({
+    status: "ok",
+    message: "Geo-Scan backend is running. Use /api/health or other endpoints.",
+  });
+});
+
 /**
  * Health check endpoint
  */
