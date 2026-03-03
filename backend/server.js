@@ -99,6 +99,17 @@ app.use((req, res, next) => {
   next();
 });
 
+// serve static frontend files (project root is one level up from backend folder)
+import path from 'path';
+const FRONTEND_DIR = path.resolve(process.cwd(), '..');
+app.use(express.static(FRONTEND_DIR));
+
+// catch-all for client-side routes (non-API)
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api')) return next();
+  res.sendFile(path.join(FRONTEND_DIR, 'index.html'));
+});
+
 // ============================================
 // API ENDPOINTS
 // ============================================
