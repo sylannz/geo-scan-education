@@ -337,15 +337,12 @@ function initCarousel() {
 // AUDIO FUNCTIONS
 // ============================================
 // ============================================
-// AUDIO FUNCTIONS - Backend TTS API
+// AUDIO FUNCTIONS - Browser Speech Synthesis
 // ============================================
-async function handleAudioPlay() {
+function handleAudioPlay() {
   // Stop if already playing
   if (STATE.audioPlaying) {
-    if (STATE.audioSource) {
-      STATE.audioSource.pause();
-      STATE.audioSource = null;
-    }
+    window.speechSynthesis.cancel();
     STATE.audioPlaying = false;
     updateAudioBtn(false);
     return;
@@ -355,82 +352,37 @@ async function handleAudioPlay() {
   DOM.setText("audio-status", t.audioBtnLoading);
   DOM.removeClass("audio-progress-container", "hidden");
 
-  try {
-    // Prepare text to speak
-    const textToSpeak = `${t.eduDesc} ${t.unescoDesc}`;
+  // Use browser native speech synthesis
+  const textToSpeak = `${t.eduDesc} ${t.unescoDesc}`;
 
-    console.log(`[TTS] Requesting audio from backend...`);
+  const utterance = new SpeechSynthesisUtterance(textToSpeak);
+  utterance.lang = STATE.language === "id" ? "id-ID" : "en-US";
+  utterance.rate = 1;
+  utterance.pitch = 1;
+  utterance.volume = 1;
 
-    // Call backend TTS API
-    const response = await fetch(CONFIG.ttsBackendUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        text: textToSpeak,
-        language: STATE.language,
-      }),
-    });
+  utterance.onstart = () => {
+    console.log("[Speech] Audio started");
+    STATE.audioPlaying = true;
+    updateAudioBtn(true);
+  };
 
-    // Check if response is JSON error
-    const contentType = response.headers.get("content-type");
-    console.log(
-      `[TTS] Response status: ${response.status}, content-type: ${contentType}`,
-    );
-
-    if (!response.ok || contentType?.includes("application/json")) {
-      const errorData = await response.json();
-      console.error("[TTS] Backend error:", errorData);
-      throw new Error(
-        errorData.message || errorData.error || "Backend TTS error",
-      );
-    }
-
-    // Get audio blob from response
-    const audioBlob = await response.blob();
-    console.log(
-      `[TTS] Audio received, size: ${audioBlob.size} bytes, type: ${audioBlob.type}`,
-    );
-
-    // Create audio URL and play
-    const audioUrl = URL.createObjectURL(audioBlob);
-    STATE.audioSource = new Audio(audioUrl);
-
-    STATE.audioSource.onloadstart = () => {
-      console.log("[TTS] Audio loading...");
-    };
-
-    STATE.audioSource.oncanplay = () => {
-      console.log("[TTS] Audio ready, playing...");
-      STATE.audioPlaying = true;
-      STATE.audioSource.play();
-      updateAudioBtn(true);
-    };
-
-    STATE.audioSource.onended = () => {
-      console.log("[TTS] Audio ended");
-      STATE.audioPlaying = false;
-      updateAudioBtn(false);
-      // Clean up blob URL
-      URL.revokeObjectURL(audioUrl);
-    };
-
-    STATE.audioSource.onerror = (err) => {
-      console.error("[TTS] Audio playback error:", err);
-      STATE.audioPlaying = false;
-      updateAudioBtn(false);
-      DOM.setText("audio-status", "Error memutar audio");
-      DOM.addClass("audio-progress-container", "hidden");
-      URL.revokeObjectURL(audioUrl);
-    };
-  } catch (err) {
-    console.error("[TTS] Error:", err);
-    DOM.setText("audio-status", `Error: ${err.message}`);
-    DOM.addClass("audio-progress-container", "hidden");
+  utterance.onend = () => {
+    console.log("[Speech] Audio ended");
     STATE.audioPlaying = false;
     updateAudioBtn(false);
-  }
+    DOM.addClass("audio-progress-container", "hidden");
+  };
+
+  utterance.onerror = (event) => {
+    console.error("[Speech] Error:", event.error);
+    STATE.audioPlaying = false;
+    updateAudioBtn(false);
+    DOM.setText("audio-status", "Error memutar audio");
+    DOM.addClass("audio-progress-container", "hidden");
+  };
+
+  window.speechSynthesis.speak(utterance);
 }
 
 // ============================================
